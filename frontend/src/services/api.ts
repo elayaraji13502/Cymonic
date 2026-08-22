@@ -75,7 +75,10 @@ export const authService = {
 
 export const studentService = {
   getProgress: async (studentId: number) => {
-    if (isDemoMode) return { data: MOCK_STUDENT_PROGRESS[studentId] };
+    if (isDemoMode) {
+      // Return mock data for any student ID to prevent infinite loading in demo mode
+      return { data: MOCK_STUDENT_PROGRESS[studentId] || MOCK_STUDENT_PROGRESS[1] };
+    }
     return api.get(`/progress/${studentId}`);
   },
   requestMentorship: async (data: Partial<MentorshipRequest>) => {

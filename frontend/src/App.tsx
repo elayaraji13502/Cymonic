@@ -5,14 +5,18 @@ import StudentLayout from './components/layout/student/StudentLayout';
 import MentorLayout from './components/layout/mentor/MentorLayout';
 import StudentDashboard from './pages/student/Dashboard';
 import AICoach from './pages/student/AICoach';
+import StudentCourses from './pages/student/Courses';
+import StudentProgress from './pages/student/Progress';
+import StudentCertification from './pages/student/Certification';
+import StudentHistory from './pages/student/History';
 import MentorDashboard from './pages/mentor/Dashboard';
 import StudentProfile from './pages/mentor/StudentProfile';
+import MentorStudents from './pages/mentor/Students';
+import MentorAtRisk from './pages/mentor/AtRisk';
+import MentorQueue from './pages/mentor/MentorshipQueue';
+import MentorCourses from './pages/mentor/Courses';
+import MentorAnalytics from './pages/mentor/Analytics';
 import NotFound from './pages/NotFound';
-
-// Placeholder components for incomplete routes
-const Placeholder = ({ title }: { title: string }) => (
-  <div className="p-8"><h1 className="text-2xl font-bold">{title}</h1><p className="text-gray-500">Coming soon...</p></div>
-);
 
 function App() {
   return (
@@ -26,21 +30,21 @@ function App() {
         <Route path="/student" element={<StudentLayout />}>
           <Route path="dashboard" element={<StudentDashboard />} />
           <Route path="coach" element={<AICoach />} />
-          <Route path="courses" element={<Placeholder title="My Courses" />} />
-          <Route path="progress" element={<Placeholder title="My Progress" />} />
-          <Route path="certification" element={<Placeholder title="Certification" />} />
-          <Route path="history" element={<Placeholder title="Decision History" />} />
+          <Route path="courses" element={<StudentCourses />} />
+          <Route path="progress" element={<StudentProgress />} />
+          <Route path="certification" element={<StudentCertification />} />
+          <Route path="history" element={<StudentHistory />} />
         </Route>
 
         {/* Mentor Portal */}
         <Route path="/mentor" element={<MentorLayout />}>
           <Route path="dashboard" element={<MentorDashboard />} />
           <Route path="students/:studentId" element={<StudentProfile />} />
-          <Route path="students" element={<Placeholder title="All Students" />} />
-          <Route path="at-risk" element={<Placeholder title="At-Risk Students" />} />
-          <Route path="mentorship" element={<Placeholder title="Mentorship Queue" />} />
-          <Route path="courses" element={<Placeholder title="Course Management" />} />
-          <Route path="analytics" element={<Placeholder title="Analytics" />} />
+          <Route path="students" element={<MentorStudents />} />
+          <Route path="at-risk" element={<MentorAtRisk />} />
+          <Route path="mentorship" element={<MentorQueue />} />
+          <Route path="courses" element={<MentorCourses />} />
+          <Route path="analytics" element={<MentorAnalytics />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
