@@ -48,8 +48,6 @@ def validate_business_constraints(context, decision, reasoning):
         pass
     if decision == "advance" and certification_risk in {"high", "critical"}:
         raise ValueError("Invalid advance decision: certification risk is too high")
-    if decision == "advance" and context.get("required_lesson") and context.get("lesson_difficulty") in {"hard", "advanced"} and mastery != "mastered":
-        raise ValueError("Invalid advance decision: required lesson has not been mastered")
     if decision == "mentor" and "repeated failure" in reasoning.lower() and previous_reinforcement < 2:
         pass
     if "certification" in reasoning.lower() and certification_risk in {"high", "critical"} and decision != "mentor":
