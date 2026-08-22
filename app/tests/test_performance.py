@@ -59,12 +59,14 @@ def test_context_builder_large_history():
     assert context["performance"]["attempt_count"] == 102
     assert context["performance"]["latest_score"] == 95
 
-def test_router_get_context_not_found():
-    response = get_performance_context(999, 999)
+@pytest.mark.asyncio
+async def test_router_get_context_not_found():
+    response = await get_performance_context(999, 999)
     assert "error" in response
     assert response["error"]["code"] == "NOT_FOUND"
 
-def test_router_analyze_performance():
-    response = analyze_performance({"learner_id": 1, "lesson_id": 3})
+@pytest.mark.asyncio
+async def test_router_analyze_performance():
+    response = await analyze_performance({"learner_id": 1, "lesson_id": 3})
     assert response["analysis_status"] == "complete"
     assert response["learner_context"]["performance"]["trend"] == "improving"

@@ -191,14 +191,15 @@ def test_invalid_decision_is_rejected(base_state):
         })
 
 
-def test_certification_status_is_computed(base_state):
+@pytest.mark.asyncio
+async def test_certification_status_is_computed(base_state):
     base_state["learners"][1]["completed_lessons"] = [1, 2, 3]
     base_state["learners"][1]["required_lessons_completed"] = 3
     base_state["learners"][1]["required_assessments_passed"] = 2
     base_state["learners"][1]["certification_state"] = {"eligible": True, "course_completion": 100}
     from app.routers.learning_path import get_certification_status
 
-    status = get_certification_status(1, 10)
+    status = await get_certification_status(1, 10)
     assert status["certification_eligible"] is True
     assert status["course_completion"] >= 80
 

@@ -1,7 +1,8 @@
+from app.schemas.requests import ApplyDecisionRequest
 from app.workflows.learning_path.executor import DATASTORE, apply_decision
 
 
-def get_learning_path(learner_id):
+async def get_learning_path(learner_id):
     learner = DATASTORE["learners"].get(int(learner_id))
     if learner is None:
         raise ValueError("Unknown learner")
@@ -16,7 +17,7 @@ def get_learning_path(learner_id):
     }
 
 
-def get_certification_status(learner_id, course_id):
+async def get_certification_status(learner_id, course_id):
     learner = DATASTORE["learners"].get(int(learner_id))
     if learner is None:
         raise ValueError("Unknown learner")
@@ -24,8 +25,12 @@ def get_certification_status(learner_id, course_id):
     if course is None:
         raise ValueError("Unknown course")
 
-    required_total = len(course.get("required_lessons", []))
-    required_completed = len([lesson_id for lesson_id in learner.get("completed_lessons", []) if lesson_id in course.get("required_lessons", [])])
+    # Optimize: Use O(1) set lookups instead of O(N) list scans
+    required_lessons_set = set(course.get("required_lessons", []))
+    required_total = len(required_lessons_set)
+    
+    required_completed = sum(1 for lesson_id in learner.get("completed_lessons", []) if lesson_id in required_lessons_set)
+    
     assessments_total = course.get("required_assessments_total", 0)
     assessments_passed = learner.get("required_assessments_passed", 0)
     completion = min(100, int((required_completed / required_total) * 100 if required_total else 0))
@@ -41,7 +46,14 @@ def get_certification_status(learner_id, course_id):
     }
 
 
-def apply_decision_endpoint(payload: dict):
+async def apply_decision_endpoint(payload: dict):
     if not isinstance(payload, dict):
         raise ValueError("Decision payload must be a dictionary")
-    return apply_decision(payload)
+        
+    # Optimize: Use Pydantic for fast, robust validation
+    try:
+        request = ApplyDecisionRequest(**payload)
+    except Exception as e:
+        raise ValueError(f"Invalid request: {e}")
+        
+    return apply_decision(request.model_dump())

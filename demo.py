@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from app.routers.decisions import evaluate_decision_endpoint
@@ -42,7 +43,7 @@ def setup_demo_data():
     })
 
 
-def run_demo():
+async def run_demo():
     setup_demo_data()
     print("=== CYMONIC ADAPTIVE LEARNING COACH DEMO ===\n")
 
@@ -66,11 +67,11 @@ def run_demo():
     }
 
     print("1. Initial Learner State:")
-    print(json.dumps(get_learning_path(1), indent=2))
+    print(json.dumps(await get_learning_path(1), indent=2))
     print("\n--------------------------------------------------\n")
 
     print("2. Running Workflow 3 (Decision Evaluation)...")
-    decision_payload = evaluate_decision_endpoint({
+    decision_payload = await evaluate_decision_endpoint({
         "learner_id": 1,
         "lesson_id": 1,
         "learner_context": learner_context
@@ -86,16 +87,16 @@ def run_demo():
         "lesson_id": 1,
         **decision_payload
     }
-    execution_result = apply_decision_endpoint(execution_payload)
+    execution_result = await apply_decision_endpoint(execution_payload)
     print("Execution Result:")
     print(json.dumps(execution_result, indent=2))
     print("\n--------------------------------------------------\n")
 
     print("4. Final Learner State:")
-    print(json.dumps(get_learning_path(1), indent=2))
+    print(json.dumps(await get_learning_path(1), indent=2))
     print("\nCertification Status:")
-    print(json.dumps(get_certification_status(1, 10), indent=2))
+    print(json.dumps(await get_certification_status(1, 10), indent=2))
 
 
 if __name__ == "__main__":
-    run_demo()
+    asyncio.run(run_demo())

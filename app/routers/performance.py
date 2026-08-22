@@ -1,4 +1,5 @@
 from app.schemas.performance import build_error_response
+from app.schemas.requests import AnalyzePerformanceRequest
 from app.workflows.performance.context_builder import build_context_package
 
 # Mock database for Workflow 2
@@ -25,7 +26,7 @@ MOCK_DB = {
     }
 }
 
-def get_performance_context(learner_id: int, lesson_id: int):
+async def get_performance_context(learner_id: int, lesson_id: int):
     key = f"{learner_id}_{lesson_id}"
     raw_data = MOCK_DB.get(key)
     
@@ -40,14 +41,13 @@ def get_performance_context(learner_id: int, lesson_id: int):
     except Exception as e:
         return build_error_response("INTERNAL_ERROR", "An unexpected error occurred.")
 
-def analyze_performance(payload: dict):
-    learner_id = payload.get("learner_id")
-    lesson_id = payload.get("lesson_id")
-    
-    if learner_id is None or lesson_id is None:
-        return build_error_response("BAD_REQUEST", "learner_id and lesson_id are required.")
+async def analyze_performance(payload: dict):
+    try:
+        request = AnalyzePerformanceRequest(**payload)
+    except Exception as e:
+        return build_error_response("BAD_REQUEST", f"Invalid request: {e}")
         
-    context_response = get_performance_context(learner_id, lesson_id)
+    context_response = await get_performance_context(request.learner_id, request.lesson_id)
     
     if "error" in context_response:
         return context_response

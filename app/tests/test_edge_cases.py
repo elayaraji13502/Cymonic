@@ -10,13 +10,15 @@ from app.workflows.learning_path.executor import DATASTORE, apply_decision
 
 # --- Decision Workflow Edge Cases ---
 
-def test_evaluate_decision_endpoint_invalid_payload():
+@pytest.mark.asyncio
+async def test_evaluate_decision_endpoint_invalid_payload():
     with pytest.raises(ValueError, match="Request body must be a JSON object"):
-        evaluate_decision_endpoint([])
+        await evaluate_decision_endpoint([])
 
-def test_evaluate_decision_endpoint_missing_ids():
-    with pytest.raises(ValueError, match="Request requires learner_id and lesson_id"):
-        evaluate_decision_endpoint({"learner_context": {}})
+@pytest.mark.asyncio
+async def test_evaluate_decision_endpoint_missing_ids():
+    with pytest.raises(ValueError, match="Invalid request"):
+        await evaluate_decision_endpoint({"learner_context": {}})
 
 def test_evaluate_decision_invalid_id_types():
     with pytest.raises(ValueError, match="learner_id and lesson_id must be integers"):
@@ -101,9 +103,10 @@ def clean_datastore():
     })
     return DATASTORE
 
-def test_apply_decision_endpoint_invalid_payload():
+@pytest.mark.asyncio
+async def test_apply_decision_endpoint_invalid_payload():
     with pytest.raises(ValueError, match="Decision payload must be a dictionary"):
-        apply_decision_endpoint([])
+        await apply_decision_endpoint([])
 
 def test_apply_decision_missing_ids(clean_datastore):
     with pytest.raises(ValueError, match="Learner and lesson identifiers are required"):
@@ -130,17 +133,20 @@ def test_apply_decision_advance_not_in_required_path(clean_datastore):
     with pytest.raises(ValueError, match="Lesson is not part of the required course path"):
         apply_decision({"learner_id": 1, "lesson_id": 1, "decision": "advance", "reasoning": "test", "confidence": 1.0})
 
-def test_get_learning_path_unknown_learner(clean_datastore):
+@pytest.mark.asyncio
+async def test_get_learning_path_unknown_learner(clean_datastore):
     with pytest.raises(ValueError, match="Unknown learner"):
-        get_learning_path(999)
+        await get_learning_path(999)
 
-def test_get_certification_status_unknown_learner(clean_datastore):
+@pytest.mark.asyncio
+async def test_get_certification_status_unknown_learner(clean_datastore):
     with pytest.raises(ValueError, match="Unknown learner"):
-        get_certification_status(999, 10)
+        await get_certification_status(999, 10)
 
-def test_get_certification_status_unknown_course(clean_datastore):
+@pytest.mark.asyncio
+async def test_get_certification_status_unknown_course(clean_datastore):
     with pytest.raises(ValueError, match="Unknown course"):
-        get_certification_status(1, 999)
+        await get_certification_status(1, 999)
 
 def test_idempotent_advance(clean_datastore):
     clean_datastore["learners"][1]["completed_lessons"] = [1]

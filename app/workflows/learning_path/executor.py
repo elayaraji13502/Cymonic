@@ -123,7 +123,8 @@ def apply_decision(payload: dict):
             "reasoning_source": reasoning_source,
         }
     elif decision == "advance":
-        required_lesson_ids = DATASTORE["courses"][learner["course_id"]]["required_lessons"]
+        # Optimize: Use O(1) set lookup
+        required_lesson_ids = set(DATASTORE["courses"][learner["course_id"]]["required_lessons"])
         if lesson_id not in required_lesson_ids:
             raise ValueError("Lesson is not part of the required course path")
 

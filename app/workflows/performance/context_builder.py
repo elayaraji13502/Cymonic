@@ -6,17 +6,22 @@ def build_context_package(learner_id: int, lesson_id: int, raw_data: dict) -> di
     """Build the structured learner context package for Workflow 3."""
     
     scores = raw_data.get("scores", [])
-    # Handle duplicates deterministically by keeping the order but removing exact adjacent duplicates if needed,
-    # or just use them as is if they represent distinct attempts. We'll assume distinct attempts.
-    # Filter corrupted scores
-    valid_scores = [s for s in scores if 0 <= s <= 100]
     
-    # Limit large attempt history to last 20 for trend/mastery to avoid unbounded processing
-    recent_scores = valid_scores[-20:] if valid_scores else []
+    # Optimize: Avoid O(N) scan on massive histories by iterating backwards
+    # and stopping once we have the 20 most recent valid scores.
+    recent_scores = []
+    for s in reversed(scores):
+        if 0 <= s <= 100:
+            recent_scores.append(s)
+            if len(recent_scores) == 20:
+                break
+    recent_scores.reverse()
     
     latest_score = recent_scores[-1] if recent_scores else None
     average_score = sum(recent_scores) / len(recent_scores) if recent_scores else None
-    attempt_count = len(valid_scores)
+    
+    # We still need total valid attempt count, but we can optimize by only counting
+    attempt_count = sum(1 for s in scores if 0 <= s <= 100)
     
     trend = calculate_trend(recent_scores)
     
