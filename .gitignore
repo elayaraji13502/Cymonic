@@ -1,36 +1,42 @@
-# Environment — never commit real keys
+# ── Secrets — NEVER commit these ──────────────────────────────────────
 .env
 
-# Python
+# ── Python ────────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-.Python
+*.egg
 *.egg-info/
 dist/
 build/
+*.so
+*.whl
 .eggs/
 
-# Virtual environments
-venv/
+# ── Virtual environments ───────────────────────────────────────────────
 .venv/
+venv/
 env/
 ENV/
 
-# Pytest / coverage
+# ── pytest / coverage ─────────────────────────────────────────────────
 .pytest_cache/
 .coverage
 htmlcov/
+coverage.xml
 
-# IDE
+# ── IDE / editor ──────────────────────────────────────────────────────
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# OS
+# ── OS ────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# Temp scripts (internal use only)
-scripts/_live_check.py
-scripts/_groq_verify.py
+# ── Alembic auto-generated (keep versions, ignore __pycache__) ────────
+alembic/__pycache__/
+alembic/versions/__pycache__/

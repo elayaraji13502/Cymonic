@@ -1,44 +1,30 @@
 """
-app/main.py
-===========
-FastAPI application entry point for Module 3 — Adaptive Decision Engine.
+FastAPI application entry point — Adaptive Learning Coach
+=========================================================
 
-Run locally:
-    uvicorn app.main:app --reload --port 8003
+This file:
+  - Creates the FastAPI app instance.
+  - Registers global exception handlers (Pydantic validation, unhandled exceptions).
+  - Mounts all routers for Workflow 1.
+  - Exposes a lifespan context for startup/shutdown tasks.
 
-Swagger UI:
-    http://localhost:8003/docs
-
-ReDoc:
-    http://localhost:8003/redoc
+No business logic lives here.
 """
-
 from __future__ import annotations
 
 import logging
-import os
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import Any
 
-from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
-# Load .env before anything else
-load_dotenv()
+from app.config import get_settings
+from app.routers.progress import router as progress_router
+from app.schemas.progress import ErrorDetail, ErrorResponse
 
-from app.api.decisions import router as decisions_router
-
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
-
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL, logging.INFO),
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-)
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -46,74 +32,112 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    logger.info("=" * 60)
-    logger.info("Module 3 — Adaptive Decision Engine starting up")
-    logger.info("LLM_MODEL     : %s", os.getenv("LLM_MODEL", "llama3-8b-8192"))
-    logger.info("FORCE_FALLBACK: %s", os.getenv("FORCE_FALLBACK", "false"))
-    groq_key = os.getenv("GROQ_API_KEY", "")
-    if groq_key and len(groq_key) > 20 and not groq_key.startswith("gsk_..."):
-        logger.info("GROQ_API_KEY  : configured ✓")
-    else:
-        logger.info("GROQ_API_KEY  : not configured — running in fallback mode")
-    logger.info("=" * 60)
+async def lifespan(app: FastAPI):
+    """Startup and shutdown tasks."""
+    settings = get_settings()
+    log.info(
+        "Adaptive Learning Coach starting — env=%s debug=%s",
+        settings.app_env,
+        settings.app_debug,
+    )
     yield
-    logger.info("Module 3 shutting down.")
+    log.info("Adaptive Learning Coach shutting down.")
 
 
 # ---------------------------------------------------------------------------
-# App
+# App factory
 # ---------------------------------------------------------------------------
 
-app = FastAPI(
-    title="Adaptive Decision Engine",
-    description=(
-        "**Module 3** of the Adaptive Learning Coach.\n\n"
-        "Receives a structured learner context from Module 2 and returns "
-        "exactly one adaptive decision: **reinforce**, **advance**, or **mentor**.\n\n"
-        "The decision is accompanied by:\n"
-        "- Natural-language reasoning\n"
-        "- Confidence score\n"
-        "- Supporting signals\n"
-        "- Rejected alternative explanations\n"
-        "- Decision factors (supporting / blocking) per candidate\n\n"
-        "This module does **not** modify learner data and does **not** "
-        "execute Module 4 actions."
-    ),
-    version="1.0.0",
-    lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
-)
+def create_app() -> FastAPI:
+    settings = get_settings()
 
-# ---------------------------------------------------------------------------
-# CORS (permissive for hackathon — restrict in production)
-# ---------------------------------------------------------------------------
+    app = FastAPI(
+        title="Adaptive Learning Coach — Workflow 1",
+        description=(
+            "Learner State & Dataset Management API.\n\n"
+            "Maintains accurate, queryable learner records and activity history "
+            "so that Workflow 2 (Performance Analysis) can retrieve sufficient "
+            "context for adaptive reasoning."
+        ),
+        version="0.1.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        debug=settings.app_debug,
+        lifespan=lifespan,
+    )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # ── Global exception handlers ─────────────────────────────────────────
 
-# ---------------------------------------------------------------------------
-# Routers
-# ---------------------------------------------------------------------------
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        """
+        Convert Pydantic v2 validation errors to the standard error envelope.
+        Returns 422 with human-readable field-level messages.
+        Never exposes internal stack details.
+        """
+        field_errors: dict[str, Any] = {}
+        for error in exc.errors():
+            # loc is a tuple like ('body', 'score') — join to a dotted path
+            loc = ".".join(str(part) for part in error.get("loc", []))
+            field_errors[loc] = error.get("msg", "Invalid value")
 
-app.include_router(decisions_router)
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="VALIDATION_ERROR",
+                    message="Request validation failed. Check the 'details' field for per-field errors.",
+                    details=field_errors,
+                )
+            ).model_dump(),
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
+        """
+        Last-resort handler.  Logs the full traceback server-side but returns
+        only a safe, generic message to the caller — no stack traces leaked.
+        """
+        log.exception("Unhandled exception on %s %s", request.method, request.url)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=ErrorResponse(
+                error=ErrorDetail(
+                    code="INTERNAL_SERVER_ERROR",
+                    message="An unexpected error occurred. Please try again later.",
+                    details={},
+                )
+            ).model_dump(),
+        )
+
+    # ── Routers ───────────────────────────────────────────────────────────
+    app.include_router(progress_router)
+
+    # ── Health check ──────────────────────────────────────────────────────
+    @app.get("/health", tags=["ops"], include_in_schema=False)
+    async def health() -> dict:
+        return {"status": "ok", "service": "adaptive-learning-coach-workflow-1"}
+
+    return app
 
 
-# ---------------------------------------------------------------------------
-# Root redirect
-# ---------------------------------------------------------------------------
+# Module-level app instance (used by uvicorn and tests)
+app = create_app()
 
-@app.get("/", include_in_schema=False)
-def root():
-    return {
-        "module": "Adaptive Decision Engine",
-        "version": "1.0.0",
-        "docs": "/docs",
-        "health": "/api/v1/decisions/health",
-    }
+
+if __name__ == "__main__":
+    import uvicorn
+
+    settings = get_settings()
+    uvicorn.run(
+        "app.main:app",
+        host=settings.app_host,
+        port=settings.app_port,
+        reload=settings.is_development,
+        log_level=settings.log_level.lower(),
+    )
