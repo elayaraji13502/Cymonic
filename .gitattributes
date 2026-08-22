@@ -1,0 +1,11 @@
+# Normalize line endings to LF in the repository for all text files.
+# This ensures consistent behaviour across Windows, macOS and Linux.
+* text=auto eol=lf
+
+# Force binary files to never be modified
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.whl  binary
